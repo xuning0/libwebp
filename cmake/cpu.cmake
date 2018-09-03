@@ -1,4 +1,5 @@
 ## Check for SIMD extensions.
+include(CMakePushCheckState)
 
 function(webp_check_compiler_flag WEBP_SIMD_FLAG ENABLE_SIMD)
   if(NOT ENABLE_SIMD)
@@ -7,6 +8,8 @@ function(webp_check_compiler_flag WEBP_SIMD_FLAG ENABLE_SIMD)
     return()
   endif()
   unset(WEBP_HAVE_FLAG_${WEBP_SIMD_FLAG} CACHE)
+  cmake_push_check_state()
+  set(CMAKE_REQUIRED_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR})
   check_c_source_compiles("
       #include \"${CMAKE_CURRENT_LIST_DIR}/../src/dsp/dsp.h\"
       int main(void) {
@@ -17,6 +20,7 @@ function(webp_check_compiler_flag WEBP_SIMD_FLAG ENABLE_SIMD)
       }
     " WEBP_HAVE_FLAG_${WEBP_SIMD_FLAG}
   )
+  cmake_pop_check_state()
   if(WEBP_HAVE_FLAG_${WEBP_SIMD_FLAG})
     set(WEBP_HAVE_${WEBP_SIMD_FLAG} 1 PARENT_SCOPE)
   else()
@@ -60,6 +64,7 @@ foreach(I_SIMD RANGE ${WEBP_SIMD_FLAGS_RANGE})
   # First try with no extra flag added as the compiler might have default flags
   # (especially on Android).
   unset(WEBP_HAVE_${WEBP_SIMD_FLAG} CACHE)
+  cmake_push_check_state()
   set(CMAKE_REQUIRED_FLAGS)
   webp_check_compiler_flag(${WEBP_SIMD_FLAG} ${WEBP_ENABLE_SIMD})
   if(NOT WEBP_HAVE_${WEBP_SIMD_FLAG})
@@ -101,11 +106,12 @@ foreach(I_SIMD RANGE ${WEBP_SIMD_FLAGS_RANGE})
             set(COMMON_PATTERNS)
           endif()
           set(CMAKE_REQUIRED_DEFINITIONS ${SIMD_COMPILE_FLAG})
-          check_c_source_compiles("int main(void) {return 0;}" FLAG2
+          check_c_source_compiles("int main(void) {return 0;}"
+            FLAG_${SIMD_COMPILE_FLAG}
             FAIL_REGEX "warning: argument unused during compilation:"
             ${COMMON_PATTERNS}
           )
-          if(NOT FLAG2)
+          if(NOT FLAG_${SIMD_COMPILE_FLAG})
             unset(HAS_COMPILE_FLAG CACHE)
           endif()
         endif()
@@ -115,4 +121,5 @@ foreach(I_SIMD RANGE ${WEBP_SIMD_FLAGS_RANGE})
       endif()
     endif()
   endif()
+  cmake_pop_check_state()
 endforeach()

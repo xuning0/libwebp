@@ -14,7 +14,9 @@
 #include <assert.h>
 #include <stdlib.h>  // for abs()
 
-#include "./dsp.h"
+#include "src/dsp/dsp.h"
+
+#if !defined(WEBP_REDUCE_SIZE)
 
 //------------------------------------------------------------------------------
 // SSIM / PSNR
@@ -107,10 +109,13 @@ static double SSIMGet_C(const uint8_t* src1, int stride1,
   return VP8SSIMFromStats(&stats);
 }
 
+#endif  // !defined(WEBP_REDUCE_SIZE)
+
 //------------------------------------------------------------------------------
 
-static uint32_t AccumulateSSE(const uint8_t* src1,
-                              const uint8_t* src2, int len) {
+#if !defined(WEBP_DISABLE_STATS)
+static uint32_t AccumulateSSE_C(const uint8_t* src1,
+                                const uint8_t* src2, int len) {
   int i;
   uint32_t sse2 = 0;
   assert(len <= 65535);  // to ensure that accumulation fits within uint32_t
@@ -120,25 +125,30 @@ static uint32_t AccumulateSSE(const uint8_t* src1,
   }
   return sse2;
 }
+#endif
 
 //------------------------------------------------------------------------------
 
+#if !defined(WEBP_REDUCE_SIZE)
 VP8SSIMGetFunc VP8SSIMGet;
 VP8SSIMGetClippedFunc VP8SSIMGetClipped;
+#endif
+#if !defined(WEBP_DISABLE_STATS)
 VP8AccumulateSSEFunc VP8AccumulateSSE;
+#endif
 
 extern void VP8SSIMDspInitSSE2(void);
 
-static volatile VP8CPUInfo ssim_last_cpuinfo_used =
-    (VP8CPUInfo)&ssim_last_cpuinfo_used;
-
-WEBP_TSAN_IGNORE_FUNCTION void VP8SSIMDspInit(void) {
-  if (ssim_last_cpuinfo_used == VP8GetCPUInfo) return;
-
+WEBP_DSP_INIT_FUNC(VP8SSIMDspInit) {
+#if !defined(WEBP_REDUCE_SIZE)
   VP8SSIMGetClipped = SSIMGetClipped_C;
   VP8SSIMGet = SSIMGet_C;
+#endif
 
-  VP8AccumulateSSE = AccumulateSSE;
+#if !defined(WEBP_DISABLE_STATS)
+  VP8AccumulateSSE = AccumulateSSE_C;
+#endif
+
   if (VP8GetCPUInfo != NULL) {
 #if defined(WEBP_USE_SSE2)
     if (VP8GetCPUInfo(kSSE2)) {
@@ -146,6 +156,4 @@ WEBP_TSAN_IGNORE_FUNCTION void VP8SSIMDspInit(void) {
     }
 #endif
   }
-
-  ssim_last_cpuinfo_used = VP8GetCPUInfo;
 }

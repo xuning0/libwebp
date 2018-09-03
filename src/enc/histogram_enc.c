@@ -10,16 +10,16 @@
 // Author: Jyrki Alakuijala (jyrki@google.com)
 //
 #ifdef HAVE_CONFIG_H
-#include "../webp/config.h"
+#include "src/webp/config.h"
 #endif
 
 #include <math.h>
 
-#include "./backward_references_enc.h"
-#include "./histogram_enc.h"
-#include "../dsp/lossless.h"
-#include "../dsp/lossless_common.h"
-#include "../utils/utils.h"
+#include "src/enc/backward_references_enc.h"
+#include "src/enc/histogram_enc.h"
+#include "src/dsp/lossless.h"
+#include "src/dsp/lossless_common.h"
+#include "src/utils/utils.h"
 
 #define MAX_COST 1.e38
 
@@ -76,7 +76,7 @@ void VP8LHistogramStoreRefs(const VP8LBackwardRefs* const refs,
                             VP8LHistogram* const histo) {
   VP8LRefsCursor c = VP8LRefsCursorInit(refs);
   while (VP8LRefsCursorOk(&c)) {
-    VP8LHistogramAddSinglePixOrCopy(histo, c.cur_pos);
+    VP8LHistogramAddSinglePixOrCopy(histo, c.cur_pos, NULL, 0);
     VP8LRefsCursorNext(&c);
   }
 }
@@ -138,7 +138,9 @@ VP8LHistogramSet* VP8LAllocateHistogramSet(int size, int cache_bits) {
 // -----------------------------------------------------------------------------
 
 void VP8LHistogramAddSinglePixOrCopy(VP8LHistogram* const histo,
-                                     const PixOrCopy* const v) {
+                                     const PixOrCopy* const v,
+                                     int (*const distance_modifier)(int, int),
+                                     int distance_modifier_arg0) {
   if (PixOrCopyIsLiteral(v)) {
     ++histo->alpha_[PixOrCopyLiteral(v, 3)];
     ++histo->red_[PixOrCopyLiteral(v, 2)];
@@ -152,7 +154,13 @@ void VP8LHistogramAddSinglePixOrCopy(VP8LHistogram* const histo,
     int code, extra_bits;
     VP8LPrefixEncodeBits(PixOrCopyLength(v), &code, &extra_bits);
     ++histo->literal_[NUM_LITERAL_CODES + code];
-    VP8LPrefixEncodeBits(PixOrCopyDistance(v), &code, &extra_bits);
+    if (distance_modifier == NULL) {
+      VP8LPrefixEncodeBits(PixOrCopyDistance(v), &code, &extra_bits);
+    } else {
+      VP8LPrefixEncodeBits(
+          distance_modifier(distance_modifier_arg0, PixOrCopyDistance(v)),
+          &code, &extra_bits);
+    }
     ++histo->distance_[code];
   }
 }
@@ -192,14 +200,9 @@ static WEBP_INLINE double BitsEntropyRefine(const VP8LBitEntropy* entropy) {
   }
 }
 
-double VP8LBitsEntropy(const uint32_t* const array, int n,
-                       uint32_t* const trivial_symbol) {
+double VP8LBitsEntropy(const uint32_t* const array, int n) {
   VP8LBitEntropy entropy;
   VP8LBitsEntropyUnrefined(array, n, &entropy);
-  if (trivial_symbol != NULL) {
-    *trivial_symbol =
-        (entropy.nonzeros == 1) ? entropy.nonzero_code : VP8L_NON_TRIVIAL_SYM;
-  }
 
   return BitsEntropyRefine(&entropy);
 }
@@ -473,7 +476,7 @@ static void HistogramBuild(
   while (VP8LRefsCursorOk(&c)) {
     const PixOrCopy* const v = c.cur_pos;
     const int ix = (y >> histo_bits) * histo_xsize + (x >> histo_bits);
-    VP8LHistogramAddSinglePixOrCopy(histograms[ix], v);
+    VP8LHistogramAddSinglePixOrCopy(histograms[ix], v, NULL, 0);
     x += PixOrCopyLength(v);
     while (x >= xsize) {
       x -= xsize;
@@ -597,7 +600,7 @@ static void HistogramCombineEntropyBin(VP8LHistogramSet* const image_histo,
 }
 
 // Implement a Lehmer random number generator with a multiplicative constant of
-// 48271 and a modulo constant of 2^31 − 1.
+// 48271 and a modulo constant of 2^31 - 1.
 static uint32_t MyRand(uint32_t* const seed) {
   *seed = (uint32_t)(((uint64_t)(*seed) * 48271u) % 2147483647u);
   assert(*seed > 0);
@@ -1023,7 +1026,7 @@ int VP8LGetHistoImageSymbols(int xsize, int ysize,
     }
   }
 
-  // TODO(vikasa): Optimize HistogramRemap for low-effort compression mode also.
+  // TODO(vrabaud): Optimize HistogramRemap for low-effort compression mode.
   // Find the optimal map from original histograms to the final ones.
   HistogramRemap(orig_histo, image_histo, histogram_symbols);
 

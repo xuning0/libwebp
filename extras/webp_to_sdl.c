@@ -12,7 +12,7 @@
 // Author: James Zern (jzern@google.com)
 
 #ifdef HAVE_CONFIG_H
-#include "webp/config.h"
+#include "src/webp/config.h"
 #endif
 
 #if defined(WEBP_HAVE_SDL)
@@ -20,7 +20,7 @@
 #include "webp_to_sdl.h"
 
 #include <stdio.h>
-#include "webp/decode.h"
+#include "src/webp/decode.h"
 
 #if defined(WEBP_HAVE_JUST_SDL_H)
 #include <SDL.h>
@@ -28,6 +28,7 @@
 #include <SDL/SDL.h>
 #endif
 
+static int init_ok = 0;
 int WebpToSDL(const char* data, unsigned int data_size) {
   int ok = 0;
   VP8StatusCode status;
@@ -39,10 +40,13 @@ int WebpToSDL(const char* data, unsigned int data_size) {
 
   if (!WebPInitDecoderConfig(&config)) {
     fprintf(stderr, "Library version mismatch!\n");
-    return 1;
+    return 0;
   }
 
-  SDL_Init(SDL_INIT_VIDEO);
+  if (!init_ok) {
+    SDL_Init(SDL_INIT_VIDEO);
+    init_ok = 1;
+  }
 
   status = WebPGetFeatures((uint8_t*)data, (size_t)data_size, &config.input);
   if (status != VP8_STATUS_OK) goto Error;
@@ -97,6 +101,7 @@ int WebpToSDL(const char* data, unsigned int data_size) {
  Error:
   SDL_FreeSurface(surface);
   SDL_FreeSurface(screen);
+  WebPFreeDecBuffer(output);
   return ok;
 }
 

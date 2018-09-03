@@ -16,9 +16,9 @@
 #include <string.h>   // for memcpy()
 #include <stdlib.h>
 
-#include "./bit_writer_utils.h"
-#include "./endian_inl_utils.h"
-#include "./utils.h"
+#include "src/utils/bit_writer_utils.h"
+#include "src/utils/endian_inl_utils.h"
+#include "src/utils/utils.h"
 
 //------------------------------------------------------------------------------
 // VP8BitWriter
@@ -243,7 +243,6 @@ int VP8LBitWriterClone(const VP8LBitWriter* const src,
                        VP8LBitWriter* const dst) {
   const size_t current_size = src->cur_ - src->buf_;
   assert(src->cur_ >= src->buf_ && src->cur_ <= src->end_);
-  memset(dst, 0, sizeof(*dst));
   if (!VP8LBitWriterResize(dst, current_size)) return 0;
   memcpy(dst->buf_, src->buf_, current_size);
   dst->bits_ = src->bits_;

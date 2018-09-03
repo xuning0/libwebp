@@ -11,14 +11,23 @@
 //
 // Author: Vikas Arora (vikaas.arora@gmail.com)
 
-#ifndef WEBP_ENC_VP8LI_H_
-#define WEBP_ENC_VP8LI_H_
+#ifndef WEBP_ENC_VP8LI_ENC_H_
+#define WEBP_ENC_VP8LI_ENC_H_
 
-#include "./backward_references_enc.h"
-#include "./histogram_enc.h"
-#include "../utils/bit_writer_utils.h"
-#include "../webp/encode.h"
-#include "../webp/format_constants.h"
+#ifdef HAVE_CONFIG_H
+#include "src/webp/config.h"
+#endif
+// Either WEBP_NEAR_LOSSLESS is defined as 0 in config.h when compiling to
+// disable near-lossless, or it is enabled by default.
+#ifndef WEBP_NEAR_LOSSLESS
+#define WEBP_NEAR_LOSSLESS 1
+#endif
+
+#include "src/enc/backward_references_enc.h"
+#include "src/enc/histogram_enc.h"
+#include "src/utils/bit_writer_utils.h"
+#include "src/webp/encode.h"
+#include "src/webp/format_constants.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,6 +91,13 @@ WebPEncodingError VP8LEncodeStream(const WebPConfig* const config,
                                    const WebPPicture* const picture,
                                    VP8LBitWriter* const bw, int use_cache);
 
+#if (WEBP_NEAR_LOSSLESS == 1)
+// in near_lossless.c
+// Near lossless preprocessing in RGB color-space.
+int VP8ApplyNearLossless(const WebPPicture* const picture, int quality,
+                         uint32_t* const argb_dst);
+#endif
+
 //------------------------------------------------------------------------------
 // Image transforms in predictor.c.
 
@@ -99,4 +115,4 @@ void VP8LColorSpaceTransform(int width, int height, int bits, int quality,
 }    // extern "C"
 #endif
 
-#endif  /* WEBP_ENC_VP8LI_H_ */
+#endif  // WEBP_ENC_VP8LI_ENC_H_

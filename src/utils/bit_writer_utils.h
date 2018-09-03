@@ -11,10 +11,10 @@
 //
 // Author: Skal (pascal.massimino@gmail.com)
 
-#ifndef WEBP_UTILS_BIT_WRITER_H_
-#define WEBP_UTILS_BIT_WRITER_H_
+#ifndef WEBP_UTILS_BIT_WRITER_UTILS_H_
+#define WEBP_UTILS_BIT_WRITER_UTILS_H_
 
-#include "../webp/types.h"
+#include "src/webp/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -100,7 +100,7 @@ typedef struct {
   int error_;
 } VP8LBitWriter;
 
-static WEBP_INLINE size_t VP8LBitWriterNumBytes(VP8LBitWriter* const bw) {
+static WEBP_INLINE size_t VP8LBitWriterNumBytes(const VP8LBitWriter* const bw) {
   return (bw->cur_ - bw->buf_) + ((bw->used_ + 7) >> 3);
 }
 
@@ -151,4 +151,4 @@ static WEBP_INLINE void VP8LPutBits(VP8LBitWriter* const bw,
 }    // extern "C"
 #endif
 
-#endif  /* WEBP_UTILS_BIT_WRITER_H_ */
+#endif  // WEBP_UTILS_BIT_WRITER_UTILS_H_

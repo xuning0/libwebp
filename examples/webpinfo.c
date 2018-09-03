@@ -233,20 +233,20 @@ static int GetSignedBits(const uint8_t* const data, size_t data_size, size_t nb,
   return 1;
 }
 
-#define GET_BITS(v, n)                               \
-  do {                                               \
-    if (!GetBits(data, data_size, n, &v, bit_pos)) { \
-      LOG_ERROR("Truncated lossy bitstream.");       \
-      return WEBP_INFO_TRUNCATED_DATA;               \
-    }                                                \
+#define GET_BITS(v, n)                                 \
+  do {                                                 \
+    if (!GetBits(data, data_size, n, &(v), bit_pos)) { \
+      LOG_ERROR("Truncated lossy bitstream.");         \
+      return WEBP_INFO_TRUNCATED_DATA;                 \
+    }                                                  \
   } while (0)
 
-#define GET_SIGNED_BITS(v, n)                              \
-  do {                                                     \
-    if (!GetSignedBits(data, data_size, n, &v, bit_pos)) { \
-      LOG_ERROR("Truncated lossy bitstream.");             \
-      return WEBP_INFO_TRUNCATED_DATA;                     \
-    }                                                      \
+#define GET_SIGNED_BITS(v, n)                                \
+  do {                                                       \
+    if (!GetSignedBits(data, data_size, n, &(v), bit_pos)) { \
+      LOG_ERROR("Truncated lossy bitstream.");               \
+      return WEBP_INFO_TRUNCATED_DATA;                       \
+    }                                                        \
   } while (0)
 
 static WebPInfoStatus ParseLossySegmentHeader(const WebPInfo* const webp_info,
@@ -340,7 +340,7 @@ static WebPInfoStatus ParseLossyHeader(const ChunkData* const chunk_data,
   WebPInfoStatus status = WEBP_INFO_OK;
   uint64_t bit_position = 0;
   uint64_t* const bit_pos = &bit_position;
-  int color_space, clamp_type;
+  int colorspace, clamp_type;
   printf("  Parsing lossy bitstream...\n");
   // Calling WebPGetFeatures() in ProcessImageChunk() should ensure this.
   assert(chunk_data->size_ >= CHUNK_HEADER_SIZE + 10);
@@ -381,9 +381,9 @@ static WebPInfoStatus ParseLossyHeader(const ChunkData* const chunk_data,
     LOG_ERROR("Bad partition length.");
     return WEBP_INFO_BITSTREAM_ERROR;
   }
-  GET_BITS(color_space, 1);
+  GET_BITS(colorspace, 1);
   GET_BITS(clamp_type, 1);
-  printf("  Color space:      %d\n", color_space);
+  printf("  Color space:      %d\n", colorspace);
   printf("  Clamp type:       %d\n", clamp_type);
   status = ParseLossySegmentHeader(webp_info, data, data_size, bit_pos);
   if (status != WEBP_INFO_OK) return status;
@@ -462,12 +462,12 @@ static int LLGetBits(const uint8_t* const data, size_t data_size, size_t nb,
   return 1;
 }
 
-#define LL_GET_BITS(v, n)                              \
-  do {                                                 \
-    if (!LLGetBits(data, data_size, n, &v, bit_pos)) { \
-      LOG_ERROR("Truncated lossless bitstream.");      \
-      return WEBP_INFO_TRUNCATED_DATA;                 \
-    }                                                  \
+#define LL_GET_BITS(v, n)                                \
+  do {                                                   \
+    if (!LLGetBits(data, data_size, n, &(v), bit_pos)) { \
+      LOG_ERROR("Truncated lossless bitstream.");        \
+      return WEBP_INFO_TRUNCATED_DATA;                   \
+    }                                                    \
   } while (0)
 
 static WebPInfoStatus ParseLosslessTransform(WebPInfo* const webp_info,
@@ -817,9 +817,8 @@ static WebPInfoStatus ProcessImageChunk(const ChunkData* const chunk_data,
     if (webp_info->seen_image_subchunk_) {
       LOG_ERROR("Consecutive VP8/VP8L sub-chunks in an ANMF chunk.");
       return WEBP_INFO_PARSE_ERROR;
-    } else {
-      webp_info->seen_image_subchunk_ = 1;
     }
+    webp_info->seen_image_subchunk_ = 1;
   } else {
     if (webp_info->chunk_counts_[CHUNK_VP8] ||
         webp_info->chunk_counts_[CHUNK_VP8L]) {
@@ -873,9 +872,9 @@ static WebPInfoStatus ProcessALPHChunk(const ChunkData* const chunk_data,
     if (webp_info->seen_alpha_subchunk_) {
       LOG_ERROR("Consecutive ALPH sub-chunks in an ANMF chunk.");
       return WEBP_INFO_PARSE_ERROR;
-    } else {
-      webp_info->seen_alpha_subchunk_ = 1;
     }
+    webp_info->seen_alpha_subchunk_ = 1;
+
     if (webp_info->seen_image_subchunk_) {
       LOG_ERROR("ALPHA sub-chunk detected after VP8 sub-chunk "
                 "in an ANMF chunk.");
@@ -1107,6 +1106,7 @@ static void HelpLong(void) {
          "Note: there could be multiple input files;\n"
          "      options must come before input files.\n"
          "Options:\n"
+         "  -version ........... Print version number and exit.\n"
          "  -quiet ............. Do not show chunk parsing information.\n"
          "  -diag .............. Show parsing error diagnosis.\n"
          "  -summary ........... Show chunk stats summary.\n"
@@ -1140,6 +1140,11 @@ int main(int argc, const char* argv[]) {
       show_summary = 1;
     } else if (!strcmp(argv[c], "-bitstream_info")) {
       parse_bitstream = 1;
+    } else if (!strcmp(argv[c], "-version")) {
+      const int version = WebPGetDecoderVersion();
+      printf("WebP Decoder version: %d.%d.%d\n",
+             (version >> 16) & 0xff, (version >> 8) & 0xff, version & 0xff);
+      return 0;
     } else {  // Assume the remaining are all input files.
       break;
     }
