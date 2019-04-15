@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
   s.name         = "libwebp"
-  s.version      = "0.6.0"
+  s.version      = "1.0.2"
   s.summary      = "Library to encode and decode images in WebP format."
   s.homepage     = "https://developers.google.com/speed/webp/"
   s.author       = "Google Inc."
@@ -9,6 +9,7 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://chromium.googlesource.com/webm/libwebp", :tag => "#{s.version}" }
   s.compiler_flags = "-D_THREAD_SAFE"
   s.requires_arc = false
+  s.pod_target_xcconfig = { "USER_HEADER_SEARCH_PATHS" => "$(inherited) ${PODS_ROOT}/libwebp/**" }
 
   s.subspec 'webp' do |webp|
     webp.header_dir = "webp"
